@@ -53,3 +53,7 @@ class InfoClient:
         if end_ms is not None:
             body["endTime"] = end_ms
         return self._post(body)
+
+    def candles(self, coin: str, interval: str, start_ms: int, end_ms: int):
+        return self._post({"type": "candleSnapshot",
+                           "req": {"coin": coin, "interval": interval, "startTime": start_ms, "endTime": end_ms}})

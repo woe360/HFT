@@ -28,8 +28,9 @@ def notify(title: str, body: str) -> None:
             log.exception("osascript failed")
 
 
-def classify(o: Opportunity, min_bps: float) -> str | None:
-    if not o.books_deep_enough:
+def classify(o: Opportunity, min_bps: float, max_cost_bps: float = 60.0) -> str | None:
+    # Thin markets: a maker edge there is fantasy, since getting out means crossing a wide book.
+    if not o.books_deep_enough or o.fee_bps + o.slippage_bps > max_cost_bps:
         return None
     if o.net_edge_bps >= min_bps:
         return "TAKER"   # clears costs even crossing the spread: actionable
@@ -45,6 +46,7 @@ class Watcher:
         self.every = w.get("interval_minutes", 15) * 60
         self.cooldown = w.get("cooldown_hours", 6) * 3600
         self.min_bps = cfg["scanner"]["min_net_edge_bps"]
+        self.max_cost_bps = w.get("max_round_trip_cost_bps", 60)
         self.alerts_path = Path(cfg["recorder"]["data_dir"]).parent / "alerts.jsonl"
         self.scan_fn, self.notify_fn, self.clock = scan_fn, notify_fn, clock
         self.last_alert: dict[tuple[str, str], float] = {}
@@ -52,7 +54,7 @@ class Watcher:
     def tick(self) -> list[tuple[str, Opportunity]]:
         fired = []
         for o in self.scan_fn(self.cfg):
-            kind = classify(o, self.min_bps)
+            kind = classify(o, self.min_bps, self.max_cost_bps)
             if not kind:
                 continue
             key, now = (o.coin, kind), self.clock()

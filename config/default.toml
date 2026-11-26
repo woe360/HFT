@@ -48,6 +48,22 @@ SOL = "USOL"
 interval_minutes = 15
 # Don't re-alert the same coin (and same kind) within this window.
 cooldown_hours = 6
+# Ignore markets whose taker round trip costs more than this (thin books: PURR, STABLE).
+max_round_trip_cost_bps = 60
+
+[paper]
+coin = "HYPE"
+notional_usd = 1000
+starting_equity_usd = 10000
+tick_seconds = 60
+# Exit the carry if trailing funding (annualised) falls to this or below.
+exit_funding_apr = 0.0
+exit_lookback_hours = 72
+state_dir = "data/paper"
+
+[dashboard]
+host = "127.0.0.1"
+port = 8765
 
 [backtest]
 signal_hours = 24

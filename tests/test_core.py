@@ -248,3 +248,69 @@ def test_watcher_alerts_once_per_cooldown(tmp_path):
     t[0] += 6 * 3600
     assert w.tick() and len(sent) == 2
     assert len((tmp_path / "alerts.jsonl").read_text().splitlines()) == 2
+
+
+# --- paper carry loop ---
+from hlcarry.paper_carry import PaperCarry
+
+
+class LiveishClient(FakeClient):
+    """Fake exchange: HYPE perp + @107 spot, funding prints appear as time moves."""
+    def __init__(self):
+        self.now_ms = 1_800_000_000_000
+        self.rate = "0.00002"
+        self.px = 30.0
+    def perp_meta_and_ctxs(self):
+        return [{"universe": [{"name": "HYPE"}]}, [{"funding": self.rate, "markPx": str(self.px), "openInterest": "1"}]]
+    def spot_meta_and_ctxs(self):
+        return [{"tokens": [{"name": "USDC", "index": 0}, {"name": "HYPE", "index": 150}],
+                 "universe": [{"name": "@107", "tokens": [150, 0], "index": 107}]}, []]
+    def l2_book(self, coin):
+        return book(self.px * (1.0003 if coin == "HYPE" else 1.0))
+    def funding_history(self, coin, start, end=None):
+        hours = range(start // 3600_000 + 1, self.now_ms // 3600_000 + 1)
+        return [{"time": h * 3600_000, "fundingRate": self.rate} for h in hours][-500:]
+
+
+def paper_cfg(tmp_path):
+    cfg = load_config()
+    cfg["paper"]["state_dir"] = str(tmp_path / "paper")
+    cfg["risk"]["kill_switch_file"] = str(tmp_path / "KILL")
+    return cfg
+
+
+def test_paper_carry_enters_collects_funding_and_persists(tmp_path):
+    c = LiveishClient()
+    clock = lambda: c.now_ms / 1000
+    pc = PaperCarry(paper_cfg(tmp_path), client=c, clock=clock)
+    pc.tick()
+    assert pc.state["status"] == "in_carry"
+    assert pc.risk.check_hedges([("HYPE", "@107")]).ok
+    fees = pc.state["fees_paid"]
+    assert 0 < fees < 2
+    c.now_ms += 3 * 3600_000  # 3 funding prints
+    pc.tick()
+    assert len(pc.state["funding"]) == 3
+    assert pc.state["funding_earned"] == pytest.approx(3 * 1000 * 0.00002, rel=0.01)
+    # restart from disk: same state, no double-counted funding
+    pc2 = PaperCarry(paper_cfg(tmp_path), client=c, clock=clock)
+    pc2.tick()
+    assert pc2.state["status"] == "in_carry" and len(pc2.state["funding"]) == 3
+    assert pc2.book.positions[("spot", "@107")] > 0
+
+
+def test_paper_carry_exits_on_negative_funding_and_respects_kill(tmp_path):
+    c = LiveishClient()
+    clock = lambda: c.now_ms / 1000
+    pc = PaperCarry(paper_cfg(tmp_path), client=c, clock=clock)
+    pc.tick()
+    c.rate = "-0.00001"
+    c.now_ms += 3600_000
+    pc.tick()
+    assert pc.state["status"] == "flat"
+    assert all(q == 0 for q in pc.book.positions.values())
+    c.rate = "0.0001"
+    (tmp_path / "KILL").write_text("ops")
+    pc.tick()
+    assert pc.state["status"] == "killed"
+    assert not any(pc.book.positions.values())

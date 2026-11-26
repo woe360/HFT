@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hl-carry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-0:#1f1915; --bg-1:#2b221c; --bg-2:#3b2f26;
+  --cream:#f1e9dd; --cream-2:#cfc3b2; --muted:#9a8b78; --line:rgba(241,233,221,.10);
+  --gold:#e6c27a; --gold-2:#b88a3e; --lime:#d6e9a3;
+  --pos:#cfe39a; --neg:#e7a184;
+  --serif:"Newsreader","Tiempos Headline",Georgia,serif;
+  --sans:"Inter",system-ui,-apple-system,sans-serif;
+  /* environments, after the visual-system board */
+  --env-bronze:radial-gradient(120% 90% at 20% 15%,#9a7046 0%,#6e4c2f 40%,#2a1d14 100%);
+  --env-bloom:radial-gradient(110% 100% at 85% 90%,#7d8f55 0%,#47602b 35%,#2c4419 100%);
+  --env-light:linear-gradient(160deg,#e8c47f 0%,#c99a4c 55%,#9c6e2c 100%);
+  --env-earth:radial-gradient(120% 100% at 30% 20%,#4a3c2f 0%,#3a2f25 50%,#2a221b 100%);
+  --env-quiet:radial-gradient(120% 110% at 70% 80%,#86aaa6 0%,#4f7c7c 45%,#2c5859 100%);
+  --env-north:radial-gradient(120% 110% at 20% 80%,#4e6491 0%,#28365a 50%,#1a2a3e 100%);
+}
+*{box-sizing:border-box;margin:0}
+html,body{background:var(--bg-0)}
+body{
+  min-height:100vh;color:var(--cream);font:400 13px/1.45 var(--sans);
+  background:
+    radial-gradient(80% 60% at 15% 0%,rgba(122,92,62,.35),transparent 60%),
+    radial-gradient(60% 50% at 100% 100%,rgba(90,66,44,.30),transparent 60%),
+    linear-gradient(180deg,var(--bg-1),var(--bg-0));
+  background-attachment:fixed;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1360px;margin:0 auto;padding:28px 32px 48px}
+header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:28px}
+.brand{display:flex;gap:18px;align-items:flex-start}
+.brand svg{flex:none;margin-top:4px}
+.brand h1{font:300 30px/1.1 var(--serif);letter-spacing:-.01em}
+.brand p{color:var(--muted);margin-top:6px;max-width:440px}
+.meta{text-align:right;color:var(--cream-2);font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(0,0,0,.18);font-size:12px;color:var(--cream)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:var(--pos);box-shadow:0 0 10px rgba(207,227,154,.7)}
+.dot.bad{background:var(--neg);box-shadow:0 0 10px rgba(231,161,132,.7)}
+.meta .sub{margin-top:8px;color:var(--muted)}
+
+.hero{display:grid;grid-template-columns:1fr 1.45fr 1.3fr 1.3fr;gap:6px;margin-bottom:6px}
+.card{position:relative;overflow:hidden;border-radius:2px;min-height:280px;padding:22px 24px}
+.card .label{font-size:11px;color:rgba(241,233,221,.72)}
+.card .grain{position:absolute;inset:0;pointer-events:none;opacity:.18;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+.c-candles{background:var(--env-earth)}
+.c-candles .grid{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:38px 38px;opacity:.5}
+.c-pnl{background:var(--env-bloom);display:flex;align-items:center;justify-content:center}
+.c-pnl .ghost{position:absolute;left:50%;transform:translateX(-62%);font:300 140px/1 var(--serif);color:rgba(30,45,18,.32);white-space:nowrap;letter-spacing:-.03em}
+.c-pnl .ghost.top{top:-46px}.c-pnl .ghost.bot{bottom:-52px}
+.c-pnl .big{position:relative;display:flex;align-items:flex-end;gap:14px}
+.c-pnl .num{font:300 clamp(64px,7.4vw,112px)/0.9 var(--serif);color:var(--lime);letter-spacing:-.03em}
+.c-pnl .num .lt{opacity:.55}
+.c-pnl .cap{color:rgba(214,233,163,.78);font-size:12px;line-height:1.35;padding-bottom:12px;white-space:nowrap}
+.c-split{background:linear-gradient(160deg,#4b3f30 0%,#5d5040 55%,#7a6c58 100%)}
+.c-split .num{position:absolute;right:24px;top:18px;font:300 64px/1 var(--serif);text-align:right}
+.c-split .num .lt{opacity:.6}
+.c-split .note{position:absolute;right:24px;top:96px;width:170px;z-index:1;text-align:left;font-size:11px;color:var(--cream-2);border-top:1px solid rgba(241,233,221,.25);padding-top:8px}
+.c-split svg{position:absolute;left:0;bottom:0}
+.c-split .legend{position:absolute;right:24px;bottom:20px;font-size:11px;color:var(--cream-2);display:grid;gap:4px}
+.c-split .legend i{display:inline-block;width:8px;height:8px;margin-right:7px;border-radius:1px;vertical-align:0}
+.c-fund{background:var(--env-light);color:#fff8ea}
+.c-fund svg{position:absolute;left:0;top:28px}
+.c-fund .foot{position:absolute;left:24px;bottom:22px}
+.c-fund .num{font:300 46px/1 var(--serif);margin-top:6px}
+.c-fund .num .lt{opacity:.6}
+.tip{font:500 10px var(--sans);fill:#fff}
+
+.panels{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:6px}
+.panel{background:rgba(20,15,12,.38);border:1px solid var(--line);border-radius:2px;padding:22px 24px;backdrop-filter:blur(2px)}
+.panel h2{font:300 22px/1.2 var(--serif);margin-bottom:4px}
+.panel .hint{color:var(--muted);font-size:12px;margin-bottom:16px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:9px 16px;font-size:13px}
+.kv dt{color:var(--cream-2)}.kv dd{text-align:right;font-variant-numeric:tabular-nums}
+.sep{grid-column:1/-1;height:1px;background:var(--line);margin:4px 0}
+.bar{height:4px;background:rgba(241,233,221,.10);border-radius:2px;overflow:hidden;margin-top:6px}
+.bar>span{display:block;height:100%;background:var(--gold)}
+.bar.warn>span{background:var(--neg)}
+.limits{display:grid;gap:14px;margin-top:4px}
+.limits .row{font-size:12px}
+.limits .row b{font-weight:400;color:var(--cream)}
+.limits .row span{float:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.eqwrap{grid-column:1/-1}
+.feed{list-style:none;padding:0;display:grid;gap:0;max-height:260px;overflow:auto}
+.feed li{display:grid;grid-template-columns:92px 1fr;gap:12px;padding:9px 0;border-top:1px solid var(--line);font-size:12px}
+.feed li time{color:var(--muted);font-variant-numeric:tabular-nums}
+.empty{color:var(--muted);font-style:italic;font-family:var(--serif);font-size:15px}
+.pos{color:var(--pos)}.neg{color:var(--neg)}
+footer{margin-top:22px;color:var(--muted);font-size:11px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+
+@media (max-width:1100px){
+  .hero{grid-template-columns:1fr 1fr}
+  .panels{grid-template-columns:1fr 1fr}
+  .panels .feedpanel{grid-column:1/-1}
+}
+@media (max-width:640px){
+  .wrap{padding:20px 16px 40px}
+  header{flex-direction:column}
+  .meta{text-align:left}
+  .hero,.panels{grid-template-columns:1fr}
+  .c-pnl .num{font-size:84px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 64 64" aria-hidden="true"><g fill="#cfc3b2">
+        <path d="M14 6c4 0 10 6 18 14 8-8 14-14 18-14 4 0 2 6-4 12-5 5-10 9-14 11-4-2-9-6-14-11C12 12 10 6 14 6z"/>
+        <path d="M4 30c4-3 14-2 24 3-1 8-4 18-8 24-3 4-6 3-6-2 0-7 3-14 4-19-6-2-17-3-14-6z" opacity=".9"/>
+        <path d="M60 30c-4-3-14-2-24 3 1 8 4 18 8 24 3 4 6 3 6-2 0-7-3-14-4-19 6-2 17-3 14-6z" opacity=".9"/></g></svg>
+      <div>
+        <h1>Hyperliquid carry, on paper</h1>
+        <p id="sub">Long spot, short perp, collecting hourly funding. Paper money, real market data.</p>
+      </div>
+    </div>
+    <div class="meta">
+      <span class="pill"><span class="dot" id="statusDot"></span><span id="statusText">connecting</span></span>
+      <div class="sub" id="updated">&nbsp;</div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="card c-candles">
+      <div class="grid"></div>
+      <div class="label" id="candleLabel">HYPE · 1h</div>
+      <svg id="candles" width="100%" height="230" style="position:absolute;left:0;bottom:12px"></svg>
+      <div class="grain"></div>
+    </div>
+    <div class="card c-pnl">
+      <div class="ghost top" id="ghostTop">0</div>
+      <div class="big"><div class="num" id="pnlNum">0</div><div class="cap" id="pnlCap">paper P&amp;L<br>since start</div></div>
+      <div class="ghost bot" id="ghostBot">0</div>
+      <div class="grain"></div>
+    </div>
+    <div class="card c-split">
+      <div class="num" id="aprNum">0%</div>
+      <div class="note" id="aprNote">trailing funding, annualised</div>
+      <svg id="pie" width="300" height="230"></svg>
+      <div class="legend" id="legend"></div>
+      <div class="grain"></div>
+    </div>
+    <div class="card c-fund">
+      <svg id="fund" width="100%" height="170"></svg>
+      <div class="foot">
+        <div class="label" style="color:rgba(255,248,234,.85)" id="fundLabel">HYPE funding, 14 days (APR, 8h avg)</div>
+        <div class="num" id="fundNum">–</div>
+      </div>
+      <div class="grain"></div>
+    </div>
+  </section>
+
+  <section class="panels">
+    <div class="panel">
+      <h2>Position</h2>
+      <div class="hint" id="posHint">Both legs, marked to the live mid.</div>
+      <dl class="kv" id="pos"></dl>
+    </div>
+    <div class="panel">
+      <h2>Risk</h2>
+      <div class="hint" id="riskHint">Limits the paper loop must stay inside.</div>
+      <div class="limits" id="limits"></div>
+    </div>
+    <div class="panel feedpanel">
+      <h2>Activity</h2>
+      <div class="hint">Loop events and watcher alerts, newest first.</div>
+      <ul class="feed" id="feed"></ul>
+    </div>
+    <div class="panel eqwrap">
+      <h2>Equity</h2>
+      <div class="hint" id="eqHint">Paper account value over time.</div>
+      <svg id="equity" width="100%" height="200"></svg>
+    </div>
+  </section>
+
+  <footer>
+    <span>Read-only. No keys, no real orders. Kill switch: <code>python -m hlcarry kill</code></span>
+    <span id="foot"></span>
+  </footer>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const NS = "http://www.w3.org/2000/svg";
+const fmt$ = (v, d=2) => (v<0?"-":"") + "$" + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtPct = (v, d=1) => (v*100).toFixed(d) + "%";
+const t = ts => new Date(ts*1000);
+const hhmm = ts => t(ts).toLocaleString(undefined,{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"});
+function el(tag, attrs={}, parent){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);parent&&parent.appendChild(e);return e;}
+function clear(svg){while(svg.firstChild)svg.removeChild(svg.firstChild);}
+function splitNum(str){const m=str.match(/^([^.]*)(\..*)?$/);return m[2]?`${m[1]}<span class="lt">${m[2]}</span>`:str;}
+
+function drawCandles(svg, rows){
+  clear(svg); if(!rows||!rows.length) return;
+  const W=svg.clientWidth||300, H=230, data=rows.slice(-40);
+  const lo=Math.min(...data.map(r=>r[3])), hi=Math.max(...data.map(r=>r[2]));
+  const y=v=>H-14-(v-lo)/(hi-lo||1)*(H-60);
+  const step=(W-36)/data.length, bw=Math.max(3,step*.42);
+  const defs=el("defs",{},svg), g=el("linearGradient",{id:"cg",x1:0,y1:0,x2:0,y2:1},defs);
+  el("stop",{offset:"0","stop-color":"#ffe6a6"},g); el("stop",{offset:"1","stop-color":"#b07a2a"},g);
+  const g2=el("linearGradient",{id:"cd",x1:0,y1:0,x2:0,y2:1},defs);
+  el("stop",{offset:"0","stop-color":"#a68560"},g2); el("stop",{offset:"1","stop-color":"#5a4430"},g2);
+  data.forEach((r,i)=>{
+    const [ts,o,h,l,c]=r, x=18+i*step+step/2, up=c>=o;
+    el("line",{x1:x,x2:x,y1:y(h),y2:y(l),stroke:up?"#e9c47c":"#8c6e4f","stroke-width":1},svg);
+    el("rect",{x:x-bw/2,y:y(Math.max(o,c)),width:bw,height:Math.max(1.5,Math.abs(y(o)-y(c))),fill:up?"url(#cg)":"url(#cd)",rx:.5},svg);
+  });
+}
+
+function drawLine(svg, pts, {H, color, fill, pad=0, marker=false, zero=null}){
+  clear(svg); if(!pts||pts.length<2) return;
+  const W=svg.clientWidth||300;
+  const xs=pts.map(p=>p[0]), ys=pts.map(p=>p[1]);
+  const x0=Math.min(...xs), x1=Math.max(...xs);
+  let lo=Math.min(...ys), hi=Math.max(...ys); if(hi===lo){hi+=1;lo-=1}
+  const X=v=>pad+(v-x0)/(x1-x0||1)*(W-2*pad), Y=v=>H-8-(v-lo)/(hi-lo)*(H-26);
+  const d=pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)).join("");
+  if(zero!==null && zero>lo && zero<hi) el("line",{x1:0,x2:W,y1:Y(zero),y2:Y(zero),stroke:"rgba(255,255,255,.25)","stroke-dasharray":"3 4"},svg);
+  if(fill) el("path",{d:d+`L${X(x1)} ${H}L${X(x0)} ${H}Z`,fill},svg);
+  el("path",{d,fill:"none",stroke:color,"stroke-width":1.4,"stroke-linejoin":"round"},svg);
+  if(marker){
+    const i=ys.indexOf(hi), mx=X(xs[i]), my=Y(hi);
+    el("line",{x1:mx,x2:mx,y1:my,y2:H-30,stroke:"#2a1f14","stroke-width":1},svg);
+    el("circle",{cx:mx,cy:my,r:2.5,fill:"#2a1f14"},svg);
+    const lab=marker(hi), w=lab.length*6.2+16, bx=Math.min(Math.max(mx-w/2,4),W-w-4);
+    el("rect",{x:bx,y:H-30,width:w,height:20,rx:3,fill:"#2a1f14"},svg);
+    const tx=el("text",{x:bx+w/2,y:H-16,"text-anchor":"middle",class:"tip"},svg); tx.textContent=lab;
+  }
+}
+
+function drawPie(svg, parts){
+  clear(svg);
+  const total=parts.reduce((a,p)=>a+Math.abs(p.v),0);
+  const cx=40, cy=250, R=165;
+  const defs=el("defs",{},svg);
+  parts.forEach((p,i)=>{const g=el("linearGradient",{id:"pg"+i,x1:0,y1:0,x2:1,y2:1},defs);
+    el("stop",{offset:"0","stop-color":p.c[0]},g); el("stop",{offset:"1","stop-color":p.c[1]},g);});
+  if(!total){ el("path",{d:`M${cx} ${cy}L${cx} ${cy-R}A${R} ${R} 0 0 1 ${cx+R} ${cy}Z`,fill:"rgba(241,233,221,.10)"},svg); return; }
+  let a=-Math.PI/2; const span=Math.PI/2;
+  parts.forEach((p,i)=>{
+    const da=Math.abs(p.v)/total*span; if(da<=0) return;
+    const a2=a+da, large=da>Math.PI?1:0;
+    el("path",{d:`M${cx} ${cy}L${cx+R*Math.cos(a)} ${cy+R*Math.sin(a)}A${R} ${R} 0 ${large} 1 ${cx+R*Math.cos(a2)} ${cy+R*Math.sin(a2)}Z`,fill:`url(#pg${i})`},svg);
+    a=a2;
+  });
+}
+
+function render(p){
+  const s=p.state, m=p.market||{}, coin=p.coin;
+  const killed = !!p.kill_file || (s && s.status==="killed");
+  const stale = p.state_age_s!==null && p.state_age_s>180;
+  $("statusDot").className="dot "+(killed||stale||!s?"bad":"ok");
+  $("statusText").textContent = !s ? "paper loop not started" : killed ? "stopped by kill switch" : stale ? "paper loop not updating" :
+     s.status==="in_carry" ? `holding ${coin} carry` : "flat, waiting for funding";
+  $("updated").textContent = s ? `updated ${Math.round(p.state_age_s)}s ago` : "start it: python -m hlcarry paper";
+  $("candleLabel").textContent = `${coin} · 1h · ${m.candles&&m.candles.length?fmt$(m.candles.at(-1)[4],3):""}`;
+  drawCandles($("candles"), m.candles);
+
+  // Funding card
+  const raw=(m.funding||[]).map(r=>[r[0]/1000,r[1]]);
+  // 8h rolling mean: hourly prints are noisy, the trend is what matters
+  const f=raw.map((r,i)=>{const w=raw.slice(Math.max(0,i-7),i+1);return [r[0],w.reduce((a,x)=>a+x[1],0)/w.length];});
+  drawLine($("fund"), f, {H:170,color:"rgba(255,248,234,.92)",fill:"rgba(255,248,234,.10)",marker:v=>fmtPct(v),zero:0});
+  $("fundLabel").textContent=`${coin} funding, 14 days (APR, 8h avg)`;
+  if(s&&s.market) $("fundNum").innerHTML = splitNum(fmtPct(s.market.funding_now_apr,2)) + `<span style="font:400 12px var(--sans);opacity:.75;margin-left:10px">now</span>`;
+  else if(f.length) $("fundNum").innerHTML = splitNum(fmtPct(f.at(-1)[1],2));
+
+  if(!s){ $("pnlNum").textContent="–"; renderEmpty(p); return; }
+
+  const eq=s.equity.length?s.equity.at(-1)[1]:s.starting_equity, pnl=eq-s.starting_equity;
+  const fees=s.fees_paid||0, fund=s.funding_earned||0, basis=pnl-fund+fees;
+  $("pnlNum").innerHTML = splitNum((pnl<0?"-":"")+Math.abs(pnl).toFixed(2));
+  $("pnlCap").innerHTML = `paper P&amp;L, USD<br>since ${t(s.started_at).toLocaleDateString(undefined,{month:"short",day:"numeric"})}`;
+  const days=(p.now-s.started_at)/86400;
+  $("ghostTop").textContent = days<1 ? Math.max(1,Math.round(days*24))+"h" : days.toFixed(0)+"d";
+  $("ghostBot").textContent = Math.round(eq/1000)+"K";
+
+  const tr=s.market?s.market.trailing_apr:0;
+  $("aprNum").innerHTML=splitNum(fmtPct(tr,1));
+  $("aprNote").textContent=`${coin} funding, trailing 72h average, annualised`;
+  const parts=[
+    {k:"Funding earned",v:Math.max(fund,0),c:["#f3dca3","#d9b46c"],sw:"#e9cb8a"},
+    {k:"Fees paid",v:fees,c:["#8a7c62","#6b5f4b"],sw:"#7d705a"},
+    {k:"Basis / price",v:basis,c:["#d0a43c","#a77d22"],sw:"#c39634"},
+  ];
+  drawPie($("pie"),parts);
+  $("legend").innerHTML=parts.map(x=>`<div><i style="background:${x.sw}"></i>${x.k} <span style="color:var(--cream)">${fmt$(x.k==="Fees paid"?-x.v:x.v)}</span></div>`).join("");
+
+  // Position panel
+  const pos=s.positions||{}, prices=s.prices||{};
+  const spotK=Object.keys(pos).find(k=>k.startsWith("spot|")), perpK=Object.keys(pos).find(k=>k.startsWith("perp|"));
+  const row=(a,b,cls="")=>`<dt>${a}</dt><dd class="${cls}">${b}</dd>`;
+  let h="";
+  h+=row("Status", s.status.replace("_"," "));
+  if(spotK) h+=row(`Spot ${s.spot_coin||""}`, `+${pos[spotK].toFixed(4)} · ${fmt$(pos[spotK]*prices[spotK])}`);
+  if(perpK) h+=row(`Perp ${coin}`, `${pos[perpK].toFixed(4)} · ${fmt$(pos[perpK]*prices[perpK])}`);
+  if(!spotK&&!perpK) h+=row("Legs","none open");
+  if(s.entry){ h+=row("Entered", hhmm(s.entry.ts)); h+=row("Entry spot / perp", `${s.entry.spot_px.toFixed(3)} / ${s.entry.perp_px.toFixed(3)}`); }
+  h+=`<div class="sep"></div>`;
+  h+=row("Funding received", fmt$(fund), fund>=0?"pos":"neg");
+  h+=row("Funding payments", (s.funding||[]).length);
+  h+=row("Fees paid", fmt$(-fees), "neg");
+  h+=row("Equity", fmt$(eq));
+  if(s.market){ h+=`<div class="sep"></div>`; h+=row("Perp / spot mid", `${s.market.perp_mid.toFixed(3)} / ${s.market.spot_mid.toFixed(3)}`); h+=row("Basis", s.market.basis_bps.toFixed(1)+" bps"); }
+  $("pos").innerHTML=h;
+
+  // Risk panel
+  const r=s.risk||{}, L=p.limits||{};
+  const lim=(name,val,max,fmt)=>{const pct=Math.min(1,Math.abs(val)/(max||1));return `<div class="row"><b>${name}</b><span>${fmt(val)} / ${fmt(max)}</span><div class="bar ${pct>.8?"warn":""}"><span style="width:${(pct*100).toFixed(1)}%"></span></div></div>`;};
+  let rh="";
+  rh+=`<div class="row"><b>Kill switch</b><span class="${killed?"neg":"pos"}">${killed?"TRIPPED":"armed"}</span></div>`;
+  if(killed) rh+=`<div class="row" style="color:var(--neg)">${p.kill_file||r.kill_reason||""}</div>`;
+  rh+=lim("Daily loss", Math.min(0,r.daily_pnl||0), -(L.max_daily_loss_usd||0), v=>fmt$(Math.abs(v),0));
+  rh+=lim("Gross notional", r.gross_notional||0, L.max_gross_notional_usd, v=>fmt$(v,0));
+  rh+=lim("Leverage", r.leverage||0, L.max_leverage, v=>v.toFixed(2)+"x");
+  rh+=lim("Hedge imbalance", isFinite(r.hedge_imbalance)?r.hedge_imbalance||0:1, L.max_hedge_imbalance, v=>fmtPct(v,1));
+  $("limits").innerHTML=rh;
+
+  // Feed
+  const items=[...(s.events||[]).map(e=>({ts:e.ts,msg:e.msg})),
+               ...(p.alerts||[]).map(a=>({ts:a.ts,msg:`Watcher ${a.kind} alert: ${a.coin} ${a.net>=0?"+":""}${a.net.toFixed(1)} bps net`}))]
+               .sort((a,b)=>b.ts-a.ts).slice(0,60);
+  $("feed").innerHTML = items.length? items.map(i=>`<li><time>${hhmm(i.ts)}</time><span>${i.msg.replace(/</g,"&lt;")}</span></li>`).join("") : `<li class="empty">Nothing yet.</li>`;
+
+  // Equity
+  drawLine($("equity"), s.equity, {H:200,color:"#e6c27a",fill:"rgba(230,194,122,.08)",pad:4,zero:s.starting_equity});
+  $("eqHint").textContent = s.equity.length>1 ? `${fmt$(s.starting_equity,0)} start, dashed line. ${s.equity.length} points.` : "Collecting points, one every few minutes.";
+  $("foot").textContent = `${coin} · ${(s.funding||[]).length} hourly funding prints applied`;
+}
+
+function renderEmpty(p){
+  $("pos").innerHTML=`<dt class="empty">No paper state yet.</dt><dd></dd>`;
+  $("limits").innerHTML=""; $("feed").innerHTML=`<li class="empty">Start the loop: python -m hlcarry paper</li>`;
+}
+
+async function poll(){
+  try{ const r=await fetch("/api/state",{cache:"no-store"}); render(await r.json()); }
+  catch(e){ $("statusDot").className="dot bad"; $("statusText").textContent="dashboard server not reachable"; }
+}
+poll(); setInterval(poll,5000);
+window.addEventListener("resize",()=>poll());
+</script>
+</body>
+</html>

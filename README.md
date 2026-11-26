@@ -12,6 +12,8 @@ Read-only and paper only. There is no code path that signs or sends a real order
 | `hlcarry/risk.py` | Limits (per-coin notional, gross notional, leverage, daily loss, order rate, stale data, hedge imbalance) and a sticky kill switch that cancels and flattens. Fails closed. |
 | `hlcarry/watch.py` | Re-runs the scanner every 15 min and pops a macOS notification when a coin clears costs (TAKER = actionable now, MAKER = only with limit orders). 6h cooldown per coin. Also logs to `data/alerts.jsonl`. |
 | `hlcarry/backtest.py` | Replays Hyperliquid funding history with a simple rule (enter when 24h funding > X% APR, exit at half that), charging costs per round trip. Sweeps a few thresholds and compares with "always on". |
+| `hlcarry/paper_carry.py` | Paper "hold the carry" loop on HYPE: long spot + short perp at $1k per leg, live book fills, Hyperliquid's real hourly funding prints, risk layer on every order, exit if 72h funding goes negative. State in `data/paper/state.json`, survives restarts. |
+| `hlcarry/dashboard.py` | Local dashboard at http://127.0.0.1:8765: P&L, funding, position, risk limits, activity, equity curve. |
 | `hlcarry/paper.py` | Paper executor that fills against a book snapshot, charges taker fees and applies hourly funding, so the risk layer can be tested end to end. |
 
 ## Run it
@@ -25,9 +27,11 @@ python -m hlcarry scan --coins ETH,BTC --json
 python -m hlcarry record               # record until Ctrl-C (run under systemd/tmux on a VPS)
 python -m hlcarry watch                # leave running: alerts when a trade clears costs
 python -m hlcarry backtest --days 180  # did carry pay over the last 6 months? add --maker to compare
+python -m hlcarry paper                # paper carry loop (leave running)
+python -m hlcarry dashboard            # then open http://127.0.0.1:8765
 python -m hlcarry status               # kill switch state + data on disk
 python -m hlcarry kill "reason"        # trip the kill switch; delete ./KILL to re-arm
-pytest -q                              # 15 tests, no network needed
+pytest -q                              # 17 tests, no network needed
 ```
 
 Override anything in `config/default.toml` with `config/local.toml` (git-ignored).

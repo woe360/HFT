@@ -4,6 +4,8 @@
   python -m hlcarry record
   python -m hlcarry watch               # alert when a carry trade clears costs
   python -m hlcarry backtest [--days 180] [--coins HYPE,BTC] [--maker]
+  python -m hlcarry paper               # paper "hold the carry" loop (state in data/paper/)
+  python -m hlcarry dashboard           # http://127.0.0.1:8765
   python -m hlcarry kill "reason"       # trip the kill switch from a shell
   python -m hlcarry status              # show kill switch state + data on disk
 """
@@ -27,6 +29,8 @@ def main(argv=None):
     s.add_argument("--coins", help="comma separated perp names")
     s.add_argument("--json", action="store_true")
     sub.add_parser("record", help="record raw market data until Ctrl-C")
+    sub.add_parser("paper", help="run the paper carry loop")
+    sub.add_parser("dashboard", help="serve the local dashboard")
     sub.add_parser("watch", help="re-scan on a timer and alert when a trade clears costs")
     b = sub.add_parser("backtest", help="replay funding history with simple entry/exit rules")
     b.add_argument("--days", type=float, default=180)
@@ -59,6 +63,18 @@ def main(argv=None):
         from .watch import Watcher
         try:
             Watcher(cfg).run_forever()
+        except KeyboardInterrupt:
+            pass
+    elif args.cmd == "paper":
+        from .paper_carry import PaperCarry
+        try:
+            PaperCarry(cfg).run_forever()
+        except KeyboardInterrupt:
+            pass
+    elif args.cmd == "dashboard":
+        from .dashboard import serve
+        try:
+            serve(cfg)
         except KeyboardInterrupt:
             pass
     elif args.cmd == "backtest":

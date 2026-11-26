@@ -1,0 +1,8 @@
+data/
+KILL
+config/local.toml
+.env
+*.key
+__pycache__/
+.pytest_cache/
+.venv/

@@ -199,3 +199,52 @@ def test_recorder_against_fake_ws(tmp_path, monkeypatch):
     assert len(recs) == 6 and all("recv_ns" in r for r in recs)
     events = [r["msg"]["event"] for r in read_stream(tmp_path, "_events")]
     assert events.count("ws_connected") == 2 and "ws_reconnect_in" in events
+
+
+# --- backtest ---
+from hlcarry.backtest import fetch_funding, simulate
+from hlcarry.watch import Watcher
+
+
+def test_simulate_no_lookahead_and_costs():
+    hot, cold = 0.0001, 0.0  # 87.6% APR vs 0
+    rates = [cold] * 24 + [hot] * 48 + [cold] * 48
+    r = simulate("X", rates, enter_apr=0.30, exit_apr=0.15, round_trip_cost_bps=27, signal_hours=24)
+    assert r.trades == 1
+    # Signal crosses 30% only after ~9 hot hours are in the window, so we earn less than all 48.
+    assert 0 < r.funding_bps < 48 * hot * 1e4
+    assert r.net_bps == pytest.approx(r.funding_bps - 27)
+    flat = simulate("X", [cold] * 100, 0.30, 0.15, 27, 24)
+    assert flat.trades == 0 and flat.net_bps == 0
+
+
+def test_fetch_funding_paginates_and_dedups():
+    now = 1_000 * 3600 * 1000
+    allh = [{"time": now - h * 3600_000, "fundingRate": "0.00001"} for h in range(1, 1201)]
+
+    class C:
+        calls = 0
+        def funding_history(self, coin, start, end):
+            C.calls += 1
+            page = sorted([x for x in allh if start <= x["time"] <= end], key=lambda x: x["time"])
+            return page[:500]
+    got = fetch_funding(C(), "X", days=50, now_ms=now)
+    assert len(got) == 1200 and C.calls >= 3
+    assert [t for t, _ in got] == sorted(t for t, _ in got)
+
+
+# --- watcher ---
+def test_watcher_alerts_once_per_cooldown(tmp_path):
+    cfg = load_config()
+    cfg["recorder"]["data_dir"] = str(tmp_path / "raw")
+    t = [0.0]
+    sent = []
+    good = evaluate(match_markets(PERP, SPOT, {"ETH": "UETH"})[0],
+                    [{"fundingRate": "0.0002"}] * 72, book(3001), book(3000), FEES, 1000, 168, 2.0)
+    w = Watcher(cfg, scan_fn=lambda c: [good], notify_fn=lambda a, b: sent.append(a), clock=lambda: t[0])
+    assert w.tick() and sent == ["hl-carry TAKER: ETH"]
+    t[0] += 3600
+    assert not w.tick()
+    t[0] += 6 * 3600
+    assert w.tick() and len(sent) == 2
+    assert len((tmp_path / "alerts.jsonl").read_text().splitlines()) == 2

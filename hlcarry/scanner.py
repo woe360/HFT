@@ -54,6 +54,14 @@ class Opportunity:
     net_apr_on_capital: float  # after costs, on spot capital + perp margin
     books_deep_enough: bool
     perp_day_volume_usd: float
+    # Maker entry/exit: resting limit orders on both legs. Assumes we get filled
+    # at our price (no slippage) and pay maker fees. Optimistic: fills are not
+    # guaranteed and the hedge leg can move while we wait.
+    maker_fee_bps: float = 0.0
+    maker_net_edge_bps: float = 0.0
+    # Days of funding at the lookback average needed to pay for a round trip.
+    breakeven_days_taker: float = float("inf")
+    breakeven_days_maker: float = float("inf")
 
     def as_dict(self):
         return asdict(self)
@@ -114,6 +122,10 @@ def evaluate(
     capital_per_notional = 1 + 1 / leverage
     net_apr = (net_bps / 1e4) / capital_per_notional * (8760 / hold_hours)
 
+    maker_fee_bps = 2 * (fees["spot_maker"] + fees["perp_maker"]) * 1e4
+    daily_bps = mean_rate * 24 * 1e4
+    be = lambda cost: cost / daily_bps if daily_bps > 0 else float("inf")
+
     pm, sm = mid(perp_book), mid(spot_book)
     return Opportunity(
         coin=m.coin,
@@ -129,6 +141,10 @@ def evaluate(
         net_apr_on_capital=net_apr,
         books_deep_enough=all((ok1, ok2, ok3, ok4)),
         perp_day_volume_usd=m.day_ntl_vlm,
+        maker_fee_bps=maker_fee_bps,
+        maker_net_edge_bps=carry_bps - maker_fee_bps,
+        breakeven_days_taker=be(fee_bps + slip_bps),
+        breakeven_days_maker=be(maker_fee_bps),
     )
 
 
@@ -160,9 +176,14 @@ def scan(cfg: dict, client: InfoClient | None = None, coins: list[str] | None = 
     return results
 
 
-def format_table(opps: list[Opportunity], min_edge_bps: float) -> str:
-    hdr = f"{'coin':<8}{'fund now':>10}{'fund avg':>10}{'pos%':>6}{'basis':>8}{'carry':>8}{'fees':>7}{'slip':>7}{'NET':>8}{'APR cap':>9}  flags"
-    lines = [hdr, "-" * len(hdr)]
+def _fmt_days(d: float) -> str:
+    return "never" if d == float("inf") else ("999+" if d > 999 else f"{d:.0f}d")
+
+
+def format_table(opps: list[Opportunity], min_edge_bps: float, hold_hours: float = 168) -> str:
+    hdr = (f"{'coin':<8}{'fund now':>9}{'fund avg':>9}{'pos%':>6}{'basis':>7}{'carry':>7}"
+           f"{'cost':>7}{'NET':>8}{'mkNET':>8}{'BE tkr':>8}{'BE mkr':>8}  flags")
+    lines = [hdr, "-" * (len(hdr) + 10)]
     for o in opps:
         flags = []
         if o.net_edge_bps < min_edge_bps:
@@ -172,9 +193,14 @@ def format_table(opps: list[Opportunity], min_edge_bps: float) -> str:
         if o.funding_pos_share < 0.7:
             flags.append("funding-unstable")
         lines.append(
-            f"{o.coin:<8}{o.funding_now_apr:>9.1%} {o.funding_mean_apr:>9.1%} {o.funding_pos_share:>5.0%}"
-            f"{o.basis_bps:>8.1f}{o.carry_bps:>8.1f}{o.fee_bps:>7.1f}{o.slippage_bps:>7.1f}"
-            f"{o.net_edge_bps:>8.1f}{o.net_apr_on_capital:>8.1%}   {','.join(flags)}"
+            f"{o.coin:<8}{o.funding_now_apr:>8.1%} {o.funding_mean_apr:>8.1%} {o.funding_pos_share:>5.0%}"
+            f"{o.basis_bps:>7.1f}{o.carry_bps:>7.1f}{o.fee_bps + o.slippage_bps:>7.1f}"
+            f"{o.net_edge_bps:>8.1f}{o.maker_net_edge_bps:>8.1f}"
+            f"{_fmt_days(o.breakeven_days_taker):>8}{_fmt_days(o.breakeven_days_maker):>8}  {','.join(flags)}"
         )
-    lines.append("bps of notional per leg over the hold period. APR cap = net return on spot capital + perp margin.")
+    lines += [
+        f"bps of notional over a {hold_hours / 24:.0f}-day hold. cost = taker fees + slippage, round trip.",
+        "NET = carry - cost (taker).  mkNET = carry - maker fees (optimistic: assumes limit orders fill).",
+        "BE = days of funding at the average rate needed to pay for one round trip.",
+    ]
     return "\n".join(lines)

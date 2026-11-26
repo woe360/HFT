@@ -44,6 +44,16 @@ BTC = "UBTC"
 ETH = "UETH"
 SOL = "USOL"
 
+[watch]
+interval_minutes = 15
+# Don't re-alert the same coin (and same kind) within this window.
+cooldown_hours = 6
+
+[backtest]
+signal_hours = 24
+# GUESS: flat slippage for 4 taker fills on liquid coins at ~$1k (live scan showed 0.3-1.8).
+taker_slippage_bps = 4.0
+
 [risk]
 max_notional_per_coin_usd = 2000
 max_gross_notional_usd = 5000

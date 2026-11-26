@@ -1,0 +1,51 @@
+# hl-carry default config. Copy to config/local.toml to override.
+# No secrets belong in this file. Trading keys (later) come from the environment
+# or a secret store, never from git.
+
+[network]
+# "mainnet" for read-only market data. Orders (later) go to testnet first.
+env = "mainnet"
+
+[recorder]
+coins = ["BTC", "ETH", "SOL", "HYPE"]
+channels = ["l2Book", "trades", "activeAssetCtx"]
+data_dir = "data/raw"
+# Poll REST funding + asset contexts this often, as a cross-check of the stream.
+rest_poll_seconds = 60
+ping_seconds = 30
+# Treat the feed as stale (alert + risk block) if no message for this long.
+stale_after_seconds = 20
+
+[fees]
+# GUESS: Hyperliquid base tier (lowest volume tier, no staking discount).
+# Check https://hyperliquid.gitbook.io/hyperliquid-docs/trading/fees and update.
+perp_taker = 0.00045
+perp_maker = 0.00015
+spot_taker = 0.00070
+spot_maker = 0.00040
+
+[scanner]
+# Notional per leg used to estimate slippage by walking the live book.
+notional_usd = 1000
+# Hours of funding history to average for the expected rate.
+lookback_hours = 72
+# How long we expect to hold the carry. Costs are amortised over this.
+hold_hours = 168
+# Only report trades whose expected net edge clears this (in bps of notional).
+min_net_edge_bps = 5
+# Perp name -> spot token name, where Hyperliquid names them differently.
+# GUESS: verify these against spotMeta before trusting the scanner output.
+[scanner.spot_aliases]
+BTC = "UBTC"
+ETH = "UETH"
+SOL = "USOL"
+
+[risk]
+max_notional_per_coin_usd = 2000
+max_gross_notional_usd = 5000
+max_leverage = 2.0
+# Max |spot qty - perp qty| / perp qty before we consider the hedge broken.
+max_hedge_imbalance = 0.05
+max_daily_loss_usd = 100
+max_orders_per_minute = 30
+kill_switch_file = "KILL"

@@ -33,6 +33,10 @@ lookback_hours = 72
 hold_hours = 168
 # Only report trades whose expected net edge clears this (in bps of notional).
 min_net_edge_bps = 5
+# Skip a perp/spot pair whose prices differ by more than this. A huge gap means
+# the spot token with that name is a different asset (or differently scaled),
+# not a real basis. Real perp/spot basis on liquid coins is a few bps.
+max_abs_basis_bps = 300
 # Perp name -> spot token name, where Hyperliquid names them differently.
 # GUESS: verify these against spotMeta before trusting the scanner output.
 [scanner.spot_aliases]

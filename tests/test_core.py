@@ -89,6 +89,13 @@ def test_scan_end_to_end_filters_negative_funding():
     assert opps[0].net_edge_bps > 0
 
 
+def test_scan_skips_mismatched_spot():
+    class Mismatch(FakeClient):
+        def l2_book(self, coin):
+            return book(3000 if coin == "ETH" else 1)  # spot "UETH" priced like a different token
+    assert scan(load_config(), client=Mismatch()) == []
+
+
 def mk_risk(tmp_path, equity=10_000, **kw):
     lim = dict(max_notional_per_coin_usd=2000, max_gross_notional_usd=5000, max_leverage=2.0,
                max_hedge_imbalance=0.05, max_daily_loss_usd=100, max_orders_per_minute=30,

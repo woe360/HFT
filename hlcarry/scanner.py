@@ -153,6 +153,8 @@ def scan(cfg: dict, client: InfoClient | None = None, coins: list[str] | None = 
             m, hist, client.l2_book(m.coin), client.l2_book(m.spot_coin), fees,
             sc["notional_usd"], sc["hold_hours"], cfg["risk"]["max_leverage"],
         )
+        if abs(opp.basis_bps) > sc.get("max_abs_basis_bps", 300):
+            continue  # not the same asset: name collision or price scaling
         results.append(opp)
     results.sort(key=lambda o: o.net_edge_bps, reverse=True)
     return results
